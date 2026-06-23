@@ -117,9 +117,7 @@ def train_main():
         os.makedirs(params_path)
         print('create params directory %s' % (params_path))
     elif (start_epoch == 0) and (os.path.exists(params_path)):
-        shutil.rmtree(params_path)
-        os.makedirs(params_path)
-        print('delete the old one and create params directory %s' % (params_path))
+        print('params directory already exists, using existing directory %s' % (params_path))
     elif (start_epoch > 0) and (os.path.exists(params_path)):
         print('train from params directory %s' % (params_path))
     else:
