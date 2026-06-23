@@ -59,10 +59,14 @@ model_name = training_config['model_name']
 graph_use = training_config['graph']
 
 ctx = training_config['ctx']
-os.environ["CUDA_VISIBLE_DEVICES"] = ctx
+if ctx.lower() == 'cpu':
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = ctx
 USE_CUDA = torch.cuda.is_available()
-DEVICE = torch.device('cuda:0')
-print("CUDA:", USE_CUDA, DEVICE)
+DEVICE = torch.device('cuda:0' if USE_CUDA and ctx.lower() != 'cpu' else 'cpu')
+print("ctx:", ctx)
+print("CUDA available:", USE_CUDA, "DEVICE:", DEVICE)
 
 learning_rate = float(training_config['learning_rate'])
 epochs = int(training_config['epochs'])
