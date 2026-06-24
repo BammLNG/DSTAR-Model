@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from unittest import result
+
 import torch
 import torch.nn.functional as F
 import numpy as np
 import pandas as pd
-import torch
 import time
 import argparse
 from scipy.optimize import linprog
@@ -28,15 +29,19 @@ def wasserstein_distance(p, q, D):
 
     result = linprog(D, A_eq=A_eq[:-1], b_eq=b_eq[:-1])
     myresult = result.fun
-
-    return myresult
+    result = linprog(D,A_eq=A_eq[:-1],b_eq=b_eq[:-1],method='highs')
+    if not result.success:
+        print("linprog failed:", result.message)
+        return np.inf
+    return result.fun
 
 def spatial_temporal_aware_distance(x, y):
     x, y = np.array(x), np.array(y)
-    x_norm = (x**2).sum(axis=1, keepdims=True)**0.5
-    y_norm = (y**2).sum(axis=1, keepdims=True)**0.5
-    p = x_norm[:, 0] / x_norm.sum()
-    q = y_norm[:, 0] / y_norm.sum()
+    eps = 1e-8
+    x_norm = np.maximum((x**2).sum(axis=1, keepdims=True)**0.5,eps)
+    y_norm = np.maximum((y**2).sum(axis=1, keepdims=True)**0.5,eps)
+    p = x_norm[:, 0] / np.sum(x_norm[:, 0])
+    q = y_norm[:, 0] / np.sum(y_norm[:, 0])
     D = 1 - np.dot(x / x_norm, (y / y_norm).T)
     return wasserstein_distance(p, q, D)
 
@@ -44,7 +49,7 @@ def spatial_temporal_aware_distance(x, y):
 def spatial_temporal_similarity(x, y, normal, transpose):
     if normal:
         x = normalize(x)
-        x = normalize(x)
+        y = normalize(y)
     if transpose:
         x = np.transpose(x)
         y = np.transpose(y)
@@ -63,8 +68,9 @@ def gen_data(data, ntr, N):
 
 def normalize(a):
     mu=np.mean(a,axis=1,keepdims=True)
-    std=np.std(a,axis=1,keepdims=True)
-    return (a-mu)/std
+    std = np.std(a, axis=1, keepdims=True)
+    std[std == 0] = 1e-8
+    return (a - mu) / std
 
 
 parser = argparse.ArgumentParser()
@@ -109,7 +115,7 @@ R_adj = np.zeros([ndim,ndim])
 # A_adj = adj
 adj_percent = args.sparsity
 
-top = int(ndim * adj_percent)
+top = max(1, int(ndim * adj_percent))
 
 for i in range(adj.shape[0]):
     a = adj[i,:].argsort()[0:top]
