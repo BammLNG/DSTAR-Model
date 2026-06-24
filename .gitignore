@@ -1,3 +1,4 @@
 STSGCN_data.tar.gz
 data/PEM*
 myexperiments/
+__pycache__/
